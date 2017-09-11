@@ -131,6 +131,7 @@ public class PackageBarMojo extends AbstractMojo {
 
         if (!iibDependenciesLocal) {
             dependenciesManager = new DependenciesManager(project, workspace, getLog());
+            getLog().info("after initiated dependencyManger");
         }
         List<String> params = new ArrayList<String>();
 
@@ -140,30 +141,37 @@ public class PackageBarMojo extends AbstractMojo {
 
         // if there are applications, add them
         if (!iibDependenciesLocal && !dependenciesManager.getDependentApps().isEmpty()) {
+            getLog().info("dependencyApps not null, size: " + dependenciesManager.getDependentApps());
             params.addAll(dependenciesManager.getDependentApps());
         }
-
-        // if there are libraries, add them
-        if (!iibDependenciesLocal && !dependenciesManager.getDependentLibs().isEmpty()) {
-            // instead of adding the dependent libraries ( which don't make it into the appzip - fix the
-            // indirect references problem by altering the project's .project file
-
-            try {
-                dependenciesManager.fixIndirectLibraryReferences(project.getBasedir());
-            } catch (Exception e) {
-                // TODO handle exception
-                throw new MojoFailureException("problem fixing Indirect Library References", e);
-            }
-
-            // Not needed in IIB10
-            // params.add("-y");
-            // params.addAll(dependenciesManager.getDependentLibs());
+        /*
+         * turn off this. don't want to play with .project
+         * // if there are libraries, add them
+         * if (!iibDependenciesLocal && !dependenciesManager.getIndirectDependents().isEmpty()) {
+         * // instead of adding the dependent libraries ( which don't make it into the appzip - fix the
+         * // indirect references problem by altering the project's .project file
+         * getLog().info("dependencyLibs not null, size: " + dependenciesManager.getDependentLibs());
+         * try {
+         * dependenciesManager.fixIndirectLibraryReferences(project.getBasedir());
+         * } catch (Exception e) {
+         * // TODO handle exception
+         * throw new MojoFailureException("problem fixing Indirect Library References", e);
+         * }
+         * 
+         * // Not needed in IIB10
+         * // params.add("-y");
+         * // params.addAll(dependenciesManager.getDependentLibs());
+         * }
+         * 
+         * // if (dependenciesManager.getDependentApps().isEmpty() && dependenciesManager.getDependentLibs().isEmpty()) {
+         * // throw new MojoFailureException("unable to determine apps or libraries to packagebar/createbar");
+         * // }
+         */
+        if (!iibDependenciesLocal && !dependenciesManager.getIndirectDependents().isEmpty()) {
+            getLog().info("independency not null, size: " + dependenciesManager.getIndirectDependents().size());
+            params.add("-p");
+            params.addAll(dependenciesManager.getIndirectDependents());
         }
-
-        // if (dependenciesManager.getDependentApps().isEmpty() && dependenciesManager.getDependentLibs().isEmpty()) {
-        // throw new MojoFailureException("unable to determine apps or libraries to packagebar/createbar");
-        // }
-
         return params;
     }
 
@@ -193,6 +201,7 @@ public class PackageBarMojo extends AbstractMojo {
     protected List<String> constructCreateBarParams() throws MojoFailureException {
         List<String> params = new ArrayList<String>();
 
+
         // bar file name - required
 
         // workspace parameter - required
@@ -204,24 +213,29 @@ public class PackageBarMojo extends AbstractMojo {
         params.add(barName.getAbsolutePath());
 
         File projectDir = new File(workspace, project.getName());
-        if (EclipseProjUtils.getProjectType(projectDir, getLog()) == ProjectType.APPLICATION) {
+        ProjectType projectType = EclipseProjUtils.getProjectType(projectDir, getLog());
+        getLog().info("print projectType: " + projectType);
+        if (projectType == ProjectType.APPLICATION) {
             params.add("-a");
         } else {
             // else we assume shared library
             params.add("-l");
         }
         params.add(project.getName());
-
-        if (!mqsiCreateBarNoCleanBuild) {
-            params.add("-cleanBuild");
-        }
-
+        /*
+         * if (!mqsiCreateBarNoCleanBuild) {
+         * params.add("-cleanBuild");
+         * }
+         */
         if (mqsiCreateBarDeployAsSource) {
             params.add("-deployAsSource");
         }
 
-        if (EclipseProjUtils.getProjectType(projectDir, getLog()) == ProjectType.APPLICATION) {
+        if (projectType == ProjectType.APPLICATION || projectType == ProjectType.SHAREDLIBRARY) {
             params.addAll(getApplicationAndLibraryParams());
+            for (String s : getApplicationAndLibraryParams()) {
+                getLog().info("print app/lib: " + s);
+            }
         }
 
         // always trace the packaging process
@@ -254,6 +268,13 @@ public class PackageBarMojo extends AbstractMojo {
             // / and run maven with a "mvn [goal] -f pom.xml.txt"
             util.renamePomXmlFiles(workspace, getLog());
 
+            getLog().info("print params, before run creatBar");
+
+            for (String str : params) {
+                getLog().info(str);
+            }
+
+            getLog().info("pring mqsiCreateBarReplacementCommand: " + mqsiCreateBarReplacementCommand);
             new MqsiCommandLauncher().execute(
                     getLog(),
                     pathToMqsiProfileScript,

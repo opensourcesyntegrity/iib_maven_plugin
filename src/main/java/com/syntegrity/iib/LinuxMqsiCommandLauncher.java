@@ -66,11 +66,14 @@ public class LinuxMqsiCommandLauncher extends MqsiCommandLauncher {
                 sb.append(c);
             }
             cmd = sb.toString();
+            log.info("print cmd: " + cmd);
         }
         try {
             File tf = createTempScript(pathToMqsiProfileScript, cmd);
             osCommands.add(tf.getAbsolutePath());
             logGeneratedCommands(log, osCommands);
+            log.info("print size of osCommands:" + osCommands);
+            log.info("print first oscommands: " + osCommands.get(0));
             SystemCommandExecutor commandExecutor = new SystemCommandExecutor(osCommands);
 
             TimeElapsedThread thread = new TimeElapsedThread(log);

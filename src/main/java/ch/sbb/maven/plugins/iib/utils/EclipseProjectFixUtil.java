@@ -27,8 +27,8 @@ public class EclipseProjectFixUtil {
      * @param log
      * @throws Exception
      */
-    public void fixIndirectLibraryReferences(File projectDirectory, Collection<String> dependentLibs, Log log) throws Exception
-    {
+    public void fixIndirectLibraryReferences(File projectDirectory, Collection<String> dependentLibs, Log log) throws Exception {
+        log.info("calling fixIndirectLibraryReferences.");
         File projectFile = new File(projectDirectory, ".project");
         if (!projectFile.exists()) {
             throw new Exception("unable to locate .project file at " + projectFile.getAbsolutePath());
@@ -41,8 +41,7 @@ public class EclipseProjectFixUtil {
 
         // / just want to append the file at the right point
         int insertionPoint = content.indexOf(projectsEndTag);
-        if (insertionPoint == -1)
-        {
+        if (insertionPoint == -1) {
             log.info("unable to find " + projectsEndTag + " in .project file");
         }
         String firstPart = content.substring(0, insertionPoint);
@@ -51,23 +50,18 @@ public class EclipseProjectFixUtil {
 
         String projectsSection = content.substring(content.indexOf(projectsStartTag), insertionPoint);
         boolean firstPartAppended = false;
-        for (String dependentLib : dependentLibs)
-        {
+        for (String dependentLib : dependentLibs) {
             String libTagNeeded = projectStartTag + dependentLib + projectEndTag;
-            if (!projectsSection.contains(libTagNeeded))
-            {
+            if (!projectsSection.contains(libTagNeeded)) {
                 firstPartAppended = true;
                 firstPart += "\t" + libTagNeeded;
                 log.info("adding direct project reference " + libTagNeeded + " to " + projectFile.getAbsolutePath());
             }
 
         }
-        if (firstPartAppended)
-        {
+        if (firstPartAppended) {
             firstPart += "\n\t";
-        }
-        else
-        {
+        } else {
             log.info("no dependent libraries fix needed for " + projectFile.getAbsolutePath());
         }
         content = firstPart + lastPart;

@@ -178,4 +178,34 @@ public class EclipseProjectUtils {
 
     }
 
+
+    /**
+     * @param file
+     * @param log
+     * @return
+     */
+    public static boolean isSharedLibrary(File projectDirectory, Log log) {
+        try {
+            if (projectDirectory.getName().equalsIgnoreCase("BARFiles")) {
+                return false;
+            }
+
+            List<String> natureList = getProjectDescription(projectDirectory).getNatures().getNature();
+            if (!natureList.contains(NatureType.LIBRARY.getFullName()) &&
+                    natureList.contains(NatureType.SHAREDLIBRARY.getFullName())) {
+                log.debug(projectDirectory + " is an IIB Library");
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            String message = "An error occurred trying to determine the nature of the eclipse project at " + projectDirectory.getAbsolutePath() + ".";
+            message += "\n" + "The error was: " + e;
+            message += "\n" + "Instead of allowing the build to fail, the EclipseProjectUtils.isLibrary() method is returning false";
+            log.warn(message);
+            return false;
+        }
+
+    }
+
 }
