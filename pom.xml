@@ -302,7 +302,7 @@
 			<uniqueVersion>true</uniqueVersion>
                         <id>distribution.repository</id>
                         <name>distribution.repository</name>
-                        <url>http://localhost:18081/repository/maven-snapshots/</url>
+                        <url>http://localhost:8081/repository/maven-snapshots/</url>
 		</snapshotRepository>
 
 	</distributionManagement>
