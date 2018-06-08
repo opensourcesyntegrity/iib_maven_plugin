@@ -76,4 +76,77 @@ public class EclipseProjUtils extends EclipseProjectUtils {
         }
         return ret;
     }
+	
+	private static ProjectDescription getProjectDescription(File projectDirectory) throws MojoFailureException {
+        ProjectDescription projectDescription = new ProjectDescription();
+        try {
+            // log.debug("In EclipseProjUtils.getProjectDescription processing " + projectDirectory.getAbsolutePath());
+            // unmarshall the .project file, which is in the temp workspace
+            // under a directory of the same name as the projectName
+            projectDescription = unmarshallEclipseProjectFile(new File(
+                    projectDirectory, ".project"));
+            // log.debug("EclipseProjUtils.getProjectDescription OK, name:" + projectDescription.getName());
+        } catch (JAXBException e) {
+            throw (new MojoFailureException(
+                    "Error parsing .project file in: " + projectDirectory.getPath(), e));
+        }
+        return projectDescription;
+    }
+	
+	public static String getProjectTypeName(File projectDirectory) {
+		String ret = null;
+		
+        try {
+            if (projectDirectory.getName().equalsIgnoreCase("BARFiles")) {
+                ret = "BARFILES";
+            } else {
+                // Determine type by nature
+                List<String> natureList = getProjectDescription(projectDirectory).getNatures().getNature();
+                if (natureList.contains(NatureType.APPLICATION.getFullName())) {
+                  
+                    ret = "APPLICATION";
+                } else if (natureList.contains(NatureType.SHAREDLIBRARY.getFullName())) {
+                   
+                    ret = "SHAREDLIBRARY";
+                } else if (natureList.contains(NatureType.LIBRARY.getFullName())) {
+                   
+                    ret = "LIBRARY";
+                } else if (natureList.contains(NatureType.JAVA.getFullName())) {
+                   
+                    ret = "JAVA";
+                }
+            }
+        } catch (Exception e) {
+            String message = "An error occurred trying to determine the nature of the eclipse project at " + projectDirectory.getAbsolutePath() + ".";
+            message += "\n" + "The error was: " + e;
+            message += "\n" + "Instead of allowing the build to fail, the EclipseProjectUtils.isApplication() method is returning null";
+            
+        }
+        return ret;
+	}
+	
+	
+	public static boolean isSharedLibraryProject(File projectDirectory) {
+        try {
+            if (projectDirectory.getName().equalsIgnoreCase("BARFiles")) {
+                return false;
+            }
+
+            List<String> natureList = getProjectDescription(projectDirectory).getNatures().getNature();
+            if (!natureList.contains(NatureType.LIBRARY.getFullName()) &&
+                    natureList.contains(NatureType.SHAREDLIBRARY.getFullName())) {
+                
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            String message = "An error occurred trying to determine the nature of the eclipse project at " + projectDirectory.getAbsolutePath() + ".";
+            message += "\n" + "The error was: " + e;
+            message += "\n" + "Instead of allowing the build to fail, the EclipseProjectUtils.isLibrary() method is returning false";
+          
+            return false;
+        }
+
+    }
 }

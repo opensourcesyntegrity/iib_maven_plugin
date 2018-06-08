@@ -164,7 +164,10 @@ public class MavenizeMojo extends AbstractMojo {
         File projectDirectory = new File(workspace, project);
         String[] dependentProjectNames = new String[0];
         if (!iibDependenciesLocal) {
-            dependentProjectNames = determineDependentProjectsInWorkspace(projectDirectory);
+            // modified the function to include shared lib dependency 
+			// dependentProjectNames = determineDependentProjectsInWorkspace(projectDirectory);
+			dependentProjectNames = determineAllDependentProjectsInWorkspace(projectDirectory);
+			
         }
         try {
             String pomContent = null;
@@ -327,7 +330,31 @@ public class MavenizeMojo extends AbstractMojo {
         }
         return dependentProjectsInWS.toArray(new String[dependentProjectsInWS.size()]);
     }
+	// An over ride method for the above function. It retrieves all the dependency of a project in the workspace 
+	// including shared lib dependency. 
+	private String[] determineAllDependentProjectsInWorkspace(File projectDirectory) throws MojoFailureException {
+        List<String> dependentProjectsInWS = new ArrayList<String>();
+        String[] dependentProjectNames = EclipseProjectUtils.getDependentProjectNames(projectDirectory);
+        for (String dependentProjectName : dependentProjectNames) {
 
+            getLog().info(projectDirectory.getName() + " has dependency " + dependentProjectName + "; checking " + dependentProjectName);
+
+            // / if the workspace has the dependent project name, then add to the present list
+            // Unless it is a shared library
+            File dir = new File(workspace, dependentProjectName);
+            if (dir.exists() && dir.isDirectory()) {
+                // if (!EclipseProjectUtils.isApplication(dir, getLog()))
+                // {
+                if ( null != dependentProjectName ) {
+                    // / make the assumption that the groupId, version, and other attributes are identical
+                    dependentProjectsInWS.add(dependentProjectName);
+                    // }
+                }
+
+            }
+        }
+        return dependentProjectsInWS.toArray(new String[dependentProjectsInWS.size()]);
+    }
     private void determineProjectDirectoryTypes() throws MojoFailureException {
         List<String> projectDirectories = EclipseProjectUtils.getWorkspaceProjects(workspace);
         for (String projectDirectory : projectDirectories) {

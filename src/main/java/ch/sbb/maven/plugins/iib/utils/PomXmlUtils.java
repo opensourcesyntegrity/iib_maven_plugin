@@ -12,6 +12,9 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.JAXBIntrospector;
 import javax.xml.bind.Unmarshaller;
+import com.syntegrity.iib.EclipseProjUtils;
+import com.syntegrity.iib.ProjectType;
+import org.apache.maven.plugin.logging.Log;
 
 import ch.sbb.maven.plugins.iib.generated.maven_pom.Model;
 
@@ -139,15 +142,23 @@ public class PomXmlUtils {
         content = content.replaceAll(versionRegex, version);
         String mqsiprofileRegex = Pattern.quote("<<mqsiprofile>>");
         content = content.replaceAll(mqsiprofileRegex, mqsiprofile);
-
+		//boolean pt = false;
+		String pt = null;
         if (dependentProjects != null && dependentProjects.length > 0) {
             String dependenciesMarker = "<dependencies>";
             int startIndex = content.indexOf(dependenciesMarker) + dependenciesMarker.length();
             String firstPart = content.substring(0, startIndex);
-
             StringBuilder dependencies = new StringBuilder();
             for (String dependentProject : dependentProjects) {
-                String dependencyText = getSingleDependencyText(groupId, dependentProject, version);
+				File projectDir = new File(workspace, dependentProject);
+                pt = EclipseProjUtils.getProjectTypeName(projectDir);
+				String dependencyText = null;
+				if (pt.equals("SHAREDLIBRARY")) {
+					dependencyText = getSingleDependencyTextSharedLib(groupId, dependentProject, version);
+				} else {
+					dependencyText = getSingleDependencyText(groupId, dependentProject, version);
+				}
+				 
                 dependencies.append("\n" + dependencyText + "\n");
             }
 
@@ -218,6 +229,18 @@ public class PomXmlUtils {
         return content;
     }
 
+	// override method of above function to obtain the pom file template for sharedLib 
+	public static String getSingleDependencyTextSharedLib(String groupId, String artifactId, String version) throws IOException {
+        String content = getSingleDependencyTemplateSharedLib();
+        String groupIdRegex = Pattern.quote("<<groupId>>");
+        content = content.replaceAll(groupIdRegex, groupId);
+        String artifactIdRegex = Pattern.quote("<<artifactId>>");
+        content = content.replaceAll(artifactIdRegex, artifactId);
+        String versionRegex = Pattern.quote("<<version>>");
+        content = content.replaceAll(versionRegex, version);
+        return content;
+    }
+	
     public static String getDistributionRepositoryText(String distributionRepository) throws IOException {
         String content = getDistributionRepositoryTemplateText();
         String distributionRepositoryRegex = Pattern.quote("<<distribution.repository>>");
@@ -264,7 +287,11 @@ public class PomXmlUtils {
     public static String getSingleDependencyTemplate() throws IOException {
         return getTemplateText("single-dependency.template");
     }
-
+	
+	public static String getSingleDependencyTemplateSharedLib() throws IOException {
+        return getTemplateText("single-dependency-sharedLibrary.template");
+    }
+	
     public static String getTemplateText(String resourcePath) throws IOException {
         InputStream is = null;// PomXmlUtils.class.getResourceAsStream("library-pom-xml.template");
         BufferedReader br = null;
