@@ -194,7 +194,8 @@ public class PomXmlUtils {
         content = content.replaceAll(versionRegex, version);
         String mqsiprofileRegex = Pattern.quote("<<mqsiprofile>>");
         content = content.replaceAll(mqsiprofileRegex, mqsiprofile);
-
+		String pt = null;
+		
         if (dependentProjects != null && dependentProjects.length > 0) {
             String dependenciesMarker = "<dependencies>";
             int startIndex = content.indexOf(dependenciesMarker) + dependenciesMarker.length();
@@ -202,8 +203,15 @@ public class PomXmlUtils {
 
             StringBuilder dependencies = new StringBuilder();
             for (String dependentProject : dependentProjects) {
-                String dependencyText = getSingleDependencyText(groupId, dependentProject, version);
-                dependencies.append("\n" + dependencyText + "\n");
+                File projectDir = new File(workspace, dependentProject);
+                pt = EclipseProjUtils.getProjectTypeName(projectDir);
+				String dependencyText = null;
+				if (pt.equals("SHAREDLIBRARY")) {
+					dependencyText = getSingleDependencyTextSharedLib(groupId, dependentProject, version);
+				} else {
+					dependencyText = getSingleDependencyText(groupId, dependentProject, version);
+                }
+				dependencies.append("\n" + dependencyText + "\n");
             }
 
             String lastPart = content.substring(startIndex + 1);
